@@ -6,7 +6,7 @@ class Parser
     @s = s
     @result = []
     @buf = ""
-    aux()
+    parse_C0()
   end
 
   def d()
@@ -27,32 +27,42 @@ class Parser
     c
   end
 
-  def aux()
+  def parse_C0()
     while @p < @s.length
       c = succ()
       case c
       when /[\b\r\n]/
-        e(c)
+        e("C0 #{c}")
       when "\e"
-        cc = succ() # '['
-        if cc == '[' then
-          if @s[@p..-1] =~ /^([0-9]+)/ then
-            arg = $1
-            @p += arg.length
-            cmd = succ()
-            e("CSI #{cmd}", [arg.to_i])
-          else
-            cmd = succ()
-            e("CSI #{cmd}")
-          end
-        else
-          e("#{cc}")
-        end
+        parse_C1()
       else
         @buf << c
       end
     end
     @result
+  end
+
+  def parse_C1()
+    cc = succ()
+    if cc == '[' then
+      parse_CSI()
+    else
+      e("C1 #{cc}")
+    end
+  end
+
+  def parse_CSI()
+    s = @s[@p..-1]
+    if s =~ /^\d/ then
+      ep = s =~ /[^\d;]/
+      arg = s[0..ep-1].split(';')
+      @p += ep
+      cmd = succ()
+      e("CSI #{cmd}", arg)
+    else
+      cmd = succ()
+      e("CSI #{cmd}")
+    end
   end
 end
 
@@ -69,6 +79,6 @@ File.open(recordfile) do |f|
 end
 
 File.open(recordfile+'.json',  'w') do |f|
-#  f.puts JSON.pretty_generate(result)
-  f.puts JSON.generate(result)
+  f.puts JSON.pretty_generate(result)
+#  f.puts JSON.generate(result)
 end

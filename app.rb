@@ -1,5 +1,5 @@
 require 'sinatra'
 
 get '/' do
-  'test'
+  slim :show
 end

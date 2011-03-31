@@ -1,0 +1,30 @@
+
+dy {
+        margin : 8px;
+      }
+      body {
+        background-color: black;
+        font: 12px Andale Mono, Courier New;
+        color: #33ff33;
+      }
+      #history-outer {
+        position: relative;
+        overflow: hidden;
+      }
+      #history {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      #history div,
+      #terminal div {
+        height: 14px;
+        white-space: nowrap;
+      }
+      #cursor {
+        height: 14px;
+        width: 7px;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }

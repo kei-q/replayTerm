@@ -23,6 +23,8 @@
 
 */
 
+debug = console.log;
+
 function cloneObject(what) {
   var result = new Object();
   for (var i in what) {
@@ -39,7 +41,7 @@ function cloneObject(what) {
 */
 var cli = function(doc) {
   this.doc      = doc;
-  this.body     = doc.body;
+  this.body     = doc.getElementById('display');
   this.history  = doc.getElementById('history');
   this.historyOuter  = doc.getElementById('history-outer');
   this.terminal = doc.getElementById('terminal');

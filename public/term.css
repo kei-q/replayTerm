@@ -1,11 +1,12 @@
 
-dy {
-        margin : 8px;
+* {
       }
-      body {
+      #display {
         background-color: black;
-        font: 12px Andale Mono, Courier New;
+        font-family: monospace;
         color: #33ff33;
+        height:100%;
+        width:100%;
       }
       #history-outer {
         position: relative;

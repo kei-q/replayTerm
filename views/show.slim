@@ -2,10 +2,12 @@ html
   head
     link(rel='stylesheet' href='term.css' type='text/css' media='all')
   body
-    #history-outer
-      #history
-    #terminal
-    #cursor
+    h1#record = @record
+    #display
+      #history-outer
+        #history
+      #terminal
+      #cursor
     script(src='cli.js')
     script(src='jquery-1.5.1.min.js')
     script(src='app.js')

@@ -331,7 +331,7 @@ cli.prototype = {
     textDecoration : 'text-decoration',
     visibility : 'visibility'
   },
-
+// {{{ unused
   keyDown : function(event) {
     //event.preventDefault();
 
@@ -407,7 +407,7 @@ cli.prototype = {
       gConnection.output(pastetext);
     }
   },
-
+// }}}
   cursorUpdate : function() {
     if (!this.cursor || !this.isFocused || !this.initialScroll) {
       return;
@@ -1267,14 +1267,21 @@ cli.prototype = {
     document.title = params + " - FireSSH";
   },
 
+  ////////////////////////////////////////////////////////////
+  // CSI sequences
+
+  ___unary : function params(params, def) {
+    if (def == null) {
+      def = 1;
+    }
+    return (params != null) ? parseInt(params) : def;
+  },
+
   /*
     Handler for escape sequence ICH
   */
   __OnEscSeqICH : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     for (var x = this.cols - 1; x >= this.curX + n; --x) {
       this.screen[this.curY][x] = this.screen[this.curY][x - n];
@@ -1290,10 +1297,7 @@ cli.prototype = {
     Handler for escape sequence CUU
   */
   __OnEscSeqCUU : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     this.curY -= n;
     if (this.curY < 0) {
@@ -1305,10 +1309,7 @@ cli.prototype = {
     Handler for escape sequence CUD
   */
   __OnEscSeqCUD : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     this.curY += n;
     if (this.curY >= this.rows) {
@@ -1320,10 +1321,7 @@ cli.prototype = {
     Handler for escape sequence CUF
   */
   __OnEscSeqCUF : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     this.curX += n;
     if (this.curX >= this.cols) {
@@ -1335,10 +1333,7 @@ cli.prototype = {
     Handler for escape sequence CUB
   */
   __OnEscSeqCUB : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     this.curX -= n;
     if (this.curX < 0) {
@@ -1404,10 +1399,7 @@ cli.prototype = {
     Handler for escape sequence ED
   */
   __OnEscSeqED : function(params) {
-    var n = 0;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params, 0);
 
     if (n == 0) {
       this.ClearRect(this.curY, this.curX, this.rows - 1, this.cols - 1);
@@ -1424,10 +1416,7 @@ cli.prototype = {
     Handler for escape sequence IL
   */
   __OnEscSeqIL : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     for (var x = 0; x < n; ++x) {
       this.ScrollDown();
@@ -1438,10 +1427,7 @@ cli.prototype = {
     Handler for escape sequence DL
   */
   __OnEscSeqDL : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     for (var x = 0; x < n; ++x) {
       this.ScrollUp();
@@ -1452,10 +1438,7 @@ cli.prototype = {
     Handler for escape sequence DCH
   */
   __OnEscSeqDCH : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     for (var x = this.curX; x < this.cols - n; ++x) {
       this.screen[this.curY][x] = this.screen[this.curY][x + n];
@@ -1471,10 +1454,7 @@ cli.prototype = {
     Handler for escape sequence SU
   */
   __OnEscSeqSU : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     for (var x = 0; x < n; ++x) {
       this.ScrollUp();
@@ -1485,10 +1465,7 @@ cli.prototype = {
     Handler for escape sequence SD
   */
   __OnEscSeqSD : function(params) {
-    var n = 1;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params);
 
     for (var x = 0; x < n; ++x) {
       this.ScrollDown();
@@ -1499,10 +1476,7 @@ cli.prototype = {
     Handler for escape sequence EL
   */
   __OnEscSeqEL : function(params) {
-    var n = 0;
-    if (params != null) {
-      n = parseInt(params);
-    }
+    var n = this.___unary(params, 0);
 
     if (n == 0) {
       this.ClearRect(this.curY, this.curX, this.curY, this.cols - 1);
@@ -1778,6 +1752,7 @@ cli.prototype = {
     this.graphicsCharactersMode = true;
   },
 
+  //{{{ unused
   onFocus : function() {
     this.isFocused = true;
 
@@ -1833,6 +1808,7 @@ cli.prototype = {
       gConnection.shell.resize_pty(cols, rows);
     }
   },
+  // }}}
 
   resetAppearance : function() {
     //this.body.style.font = this.fontSize + " " + this.font;

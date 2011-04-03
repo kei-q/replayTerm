@@ -8,7 +8,7 @@ playAUX = function(json, pt, idx) {
     gTerm.update(json[idx].contents);
     return setTimeout((function() {
       return playAUX(json, json[idx].time, idx + 1);
-    }), (json[idx].time - pt) * 1000);
+    }), (json[idx].time - pt) * 1000 / 2);
   }
 };
 $(document).ready(function() {

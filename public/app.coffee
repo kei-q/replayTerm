@@ -6,7 +6,7 @@ play = (json) ->
 playAUX = (json, pt, idx) ->
   if json[idx]
     gTerm.update json[idx].contents
-    setTimeout (-> playAUX json, json[idx].time, (idx+1)), ((json[idx].time - pt)*1000)
+    setTimeout (-> playAUX json, json[idx].time, (idx+1)), ((json[idx].time - pt)*1000/2)
 
 $(document).ready ->
   gTerm = new cli(document)

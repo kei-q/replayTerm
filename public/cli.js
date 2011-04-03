@@ -145,7 +145,6 @@ var cli = function(doc) {
   // unparsed part of last input
   this.unparsedInput = null;
 
-  window.setInterval(this.cursorUpdate.bind(this), 500);
 }
 
 cli.prototype = {
@@ -408,13 +407,6 @@ cli.prototype = {
     }
   },
 // }}}
-  cursorUpdate : function() {
-    if (!this.cursor || !this.isFocused || !this.initialScroll) {
-      return;
-    }
-
-    this.cursor.style.backgroundColor = this.cursor.style.backgroundColor == '' ? this.defaultColor : '';
-  },
 
   update : function(message) {
     //console.log(message.toSource());

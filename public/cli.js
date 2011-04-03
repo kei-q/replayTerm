@@ -26,7 +26,7 @@
 debug = console.log;
 
 function cloneObject(what) {
-  var result = new Object();
+  var result = {};
   for (var i in what) {
     result[i] = what[i];
   }
@@ -48,14 +48,6 @@ var cli = function(doc) {
   this.cursor   = doc.getElementById('cursor');
   this.letterHeight = this.cursor.clientHeight;
   this.letterWidth = this.cursor.clientWidth;
-
-  /*
-  cmdlog.wcontentWindow.addEventListener('scroll', this.updateHistoryView.bind(this), false);
-  this.doc.addEventListener('keydown', this.keyDown.bind(this), false);
-  this.doc.addEventListener('keypress', this.keyPress.bind(this), false);
-  this.doc.addEventListener('focus', this.onFocus.bind(this), false);
-  this.doc.addEventListener('blur', this.onBlur.bind(this), false);
-  */
 
   this.onResize(true);
 
@@ -80,26 +72,10 @@ var cli = function(doc) {
 
   // escape sequence handlers
   this.escSeqHandlers = {};
-  this.escSeqHandlers[this.__ESCSEQ_ICH] = this.__OnEscSeqICH.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_CUU] = this.__OnEscSeqCUU.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_CUD] = this.__OnEscSeqCUD.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_CUF] = this.__OnEscSeqCUF.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_CUB] = this.__OnEscSeqCUB.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_CHA] = this.__OnEscSeqCHA.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_CUP] = this.__OnEscSeqCUP.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_ED]  = this.__OnEscSeqED.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_EL]  = this.__OnEscSeqEL.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_IL]  = this.__OnEscSeqIL.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_DL]  = this.__OnEscSeqDL.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_DCH]  = this.__OnEscSeqDCH.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_SU]  = this.__OnEscSeqSU.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_SD]  = this.__OnEscSeqSD.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_VPA] = this.__OnEscSeqVPA.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_DECSET] = this.__OnEscSeqDECSET.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_DECRST] = this.__OnEscSeqDECRST.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_SGR] = this.__OnEscSeqSGR.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_DECSTBM] = this.__OnEscSeqDECSTBM.bind(this);
-  this.escSeqHandlers[this.__ESCSEQ_DECWINMAN] = this.__OnEscSeqDECWINMAN.bind(this);
+  var escseqs = ['ICH','CUU','CUD','CUF','CUB','CHA','CUP','ED','EL','IL','DL','DCH','SU','SD','VPA','DECSET','DECRST','SGR','DECSTBM'];
+  for (var i = 0; i < escseqs.length; ++i) {
+    eval('this.escSeqHandlers[this.__ESCSEQ_' + escseqs[i] + '] = this.__OnEscSeq' + escseqs[i] + '.bind(this)');
+  }
 
   this.escParenSeqHandlers = {};
   this.escParenSeqHandlers[this.__ESCPARENSEQ_usg0] = this.__OnEscParenSeqUsg0.bind(this);
@@ -117,7 +93,6 @@ var cli = function(doc) {
   // holds self.cols characters. If the screen doesn't contain any
   // characters then it'll be blank spaces
   this.screen = [];
-
   this.scrRendition = [];
 
   // current rendition
@@ -215,35 +190,9 @@ cli.prototype = {
 
   __ESCSEQ_DECSTBM  : 'r',  // n [;k] r: Sets Scrolling region
 
-  __ESCSEQ_DECWINMAN  : 't',  // n;n;n t: Window manipulation
-
   __ESCPARENSEQ_usg0  : 'B',  // Set United States G0 character set
 
   __ESCPARENSEQ_specg0  : '0',  // Set G0 special chars. & line set
-
-  specialKeyMap : {
-    9 :  '\x09',   // tab
-    27:  '\x1b',   // escape
-    35:  '\x05',   // end
-    36:  '\x01',   // home
-    37:  '\x1bOD', // left
-    38:  '\x1bOA', // up
-    39:  '\x1bOC', // right
-    40:  '\x1bOB', // down
-    46:  '\x1b[3~', // delete
-    112: '\x1bOP', // F1
-    113: '\x1bOQ', // F2
-    114: '\x1bOR', // F3
-    115: '\x1bOS', // F4
-    116: '\x1b[15~', // F5
-    117: '\x1b[17~', // F6
-    118: '\x1b[18~', // F7
-    119: '\x1b[19~', // F8
-    120: '\x1b[20~', // F9
-    121: '\x1b[21~', // F10
-    122: '\x1b[23~', // F11
-    123: '\x1b[24~', // F12
-  },
 
   doc : null,
   body : null,
@@ -301,7 +250,6 @@ cli.prototype = {
   origScreen : null,
   origScrRendition : null,
 
-  isFocused : false,
   initialScroll : false,
   historyCache : [],
   newHistoryLines : 0,
@@ -330,93 +278,38 @@ cli.prototype = {
     textDecoration : 'text-decoration',
     visibility : 'visibility'
   },
-// {{{ unused
-  keyDown : function(event) {
-    //event.preventDefault();
 
+  /*
+     utils
+   */
+  ___scrollToBottom : function() {
+    this.body.scrollTop = this.body.scrollHeight - this.body.clientHeight;  // scroll to bottom
   },
 
-  keyPress : function(event) {
-    //console.log(event.which + ' '+event.keyCode);
-    if (testAccelKey(event)) {
-      // cmd-a : select all, don't preventDefault on Macs only
-      // cmd-x, cmd-c [cut, copy] : don't preventDefault
-      if ((event.metaKey && event.which == 97) || event.which == 120 || event.which == 99) {
-        return;
-      }
-      if (event.which == 116) { // cmd-t, new tab
-        return;
-      }
+  // 0index対応のために、-1が設定されてる,点に注意
+  ___between : function(l, v, g) {
+    if (v < l) {
+      return l;
+    } else if (v >= g) {
+      return g - 1;
     }
-
-    event.preventDefault();
-
-    if (testAccelKey(event)) {
-      if (event.which == 118) {         // cmd-v, paste
-        this.paste();
-        return;
-      } else if (event.which == 119) {  // cmd-w, close tab
-        window.close();
-        return;
-      }
-    }
-
-    if (event.ctrlKey) {
-      if (event.which == 64) {   // ctrl-@
-        gConnection.output('\0');
-      } else if (event.which >= 97 && event.which <= 122) { // ctrl-[a-z]
-        gConnection.output(String.fromCharCode(event.which - 96));
-      } else if (event.which == 27) { // ctrl-?
-        gConnection.output('\x7f');
-      } else {
-        gConnection.output(String.fromCharCode(event.which));
-      }
-      return;
-    }
-
-    var character;
-    if (event.which) {
-      character = String.fromCharCode(event.which);
-    } else {
-      character = this.specialKeyMap[event.keyCode];
-      if (!character) {
-        return;
-      }
-    }
-    gConnection.output(character);
+    return v;
   },
 
-  paste : function() {
-    var clip = Components.classes["@mozilla.org/widget/clipboard;1"].getService(Components.interfaces.nsIClipboard);
-    if (!clip) return false;
-
-    var trans = Components.classes["@mozilla.org/widget/transferable;1"].createInstance(Components.interfaces.nsITransferable);
-    if (!trans) return false;
-    trans.addDataFlavor("text/unicode");
-
-    clip.getData(trans, clip.kGlobalClipboard);
-
-    var str       = new Object();
-    var strLength = new Object();
-
-    trans.getTransferData("text/unicode", str, strLength);
-    if (str) {
-      str = str.value.QueryInterface(Components.interfaces.nsISupportsString);
-      pastetext = str.data.substring(0, strLength.value / 2);
-      gConnection.output(pastetext);
+  ___times : function(n, f) {
+    for (var i = 0; i < n; ++x) {
+      f();
     }
   },
-// }}}
+
 
   update : function(message) {
-    //console.log(message.toSource());
-    var scrollLog = this.body.scrollTop + 50 >= this.body.scrollHeight - this.body.clientHeight;
+    var scrollLog = this.body.scrollTop >= this.body.scrollHeight - this.body.clientHeight;
 
     try {
       this.ProcessInput(message);
       this.updateScreen(scrollLog);
     } catch (ex) {
-      debug('cursor: ' + this.curY + ' ' + this.curX);
       debug(ex);
     }
   },
@@ -436,7 +329,7 @@ cli.prototype = {
     if (!dontScrollIfNotInitialized || this.initialScroll) {
       if (scrollLog || !this.initialScroll) {
         this.initialScroll = true;
-        this.body.scrollTop = this.body.scrollHeight - this.body.clientHeight;  // scroll to bottom
+        this.___scrollToBottom();
       }
     }
 
@@ -475,25 +368,21 @@ cli.prototype = {
           rendition += '</span>';
           styling = false;
         }
-        rendition += screen[row][x].c;
       } else {
         if (styling && currentStyle != screen[row][x].style) {
-          rendition += '</span><span style="' + this.transformStyle(screen[row][x].style) + '">';
-          currentStyle = screen[row][x].style;
-        } else if (!styling) {
-          rendition += '<span style="' + this.transformStyle(screen[row][x].style) + '">';
-          currentStyle = screen[row][x].style;
+          rendition += '</span>';
         }
+        rendition += '<span style="' + this.transformStyle(screen[row][x].style) + '">';
+        currentStyle = screen[row][x].style;
         styling = true;
-        rendition += screen[row][x].c;
       }
+      rendition += screen[row][x].c;
     }
 
     if (styling) {
       rendition += '</span>';
     }
 
-    rendition += '';
     return rendition;
   },
 
@@ -503,7 +392,7 @@ cli.prototype = {
     this.terminal.innerHTML = new Array(this.rows + 1).join(oneLine);
 
     if (!init) {
-      this.body.scrollTop = this.body.scrollHeight - this.body.clientHeight;  // scroll to bottom
+      this.___scrollToBottom();
     }
   },
 
@@ -517,7 +406,7 @@ cli.prototype = {
   },
 
   updateHistoryView : function(force) {
-    var scrollLog = this.body.scrollTop + 50 >= this.body.scrollHeight - this.body.clientHeight;
+    var scrollLog = this.body.scrollTop >= this.body.scrollHeight - this.body.clientHeight;
 
     this.historyOuter.style.height = (this.historyOuter.clientHeight + this.newHistoryLines * this.letterHeight) + 'px';
     this.newHistoryLines = 0;
@@ -545,7 +434,7 @@ cli.prototype = {
     if (typeof force == "boolean" && force) {
       if (scrollLog && this.initialScroll) {
         this.initialScroll = true;
-        this.body.scrollTop = this.body.scrollHeight - this.body.clientHeight;  // scroll to bottom
+        this.___scrollToBottom();
       }
       this.updateCursor();
     }
@@ -572,24 +461,17 @@ cli.prototype = {
   },
 
   /*
-    Returns no. rows in the terminal
-  */
-  GetRows : function() {
-    return this.rows;
-  },
-
-  /*
-    Returns no. cols in the terminal
-  */
-  GetCols : function() {
-    return this.cols;
-  },
-
-  /*
     Returns terminal rows and cols as tuple
   */
   GetSize : function() {
     return [this.rows, this.cols];
+  },
+
+  /*
+    Returns cursor position as tuple
+  */
+  GetCursorPos : function() {
+    return [this.curY, this.curX];
   },
 
   /*
@@ -687,13 +569,6 @@ cli.prototype = {
   },
 
   /*
-    Returns cursor position as tuple
-  */
-  GetCursorPos : function() {
-    return [this.curY, this.curX];
-  },
-
-  /*
     Clears the entire terminal screen
   */
   Clear : function() {
@@ -705,29 +580,10 @@ cli.prototype = {
     endRow and EndCol.
   */
   ClearRect : function(startRow, startCol, endRow, endCol) {
-    if (startRow < 0) {
-      startRow = 0;
-    } else if (startRow >= this.rows) {
-      startRow = this.rows - 1;
-    }
-
-    if (startCol < 0) {
-      startCol = 0;
-    } else if (startCol >= this.cols) {
-      startCol = this.cols - 1;
-    }
-
-    if (endRow < 0) {
-      endRow = 0;
-    } else if (endRow >= this.rows) {
-      endRow = this.rows - 1;
-    }
-
-    if (endCol < 0) {
-      endCol = 0;
-    } else if (endCol >= this.cols) {
-      endCol = this.cols - 1;
-    }
+    this.___between(0, startRow, this.rows-1);
+    this.___between(0, startCol, this.cols-1);
+    this.___between(0, endRow, this.rows-1);
+    this.___between(0, endCol, this.cols-1);
 
     if (startRow > endRow) {
       var temp = startRow;
@@ -763,82 +619,6 @@ cli.prototype = {
   },
 
   /*
-    Returns the character at the location specified by row and col. The
-    row and col should be in the range 0..rows - 1 and 0..cols - 1."
-  */
-  GetChar : function(row, col) {
-    if (row < 0 || row >= this.rows) {
-      return null;
-    }
-
-    if (cols < 0 || col >= this.cols) {
-      return null;
-    }
-
-    return this.screen[row][col];
-  },
-
-  /*
-    Returns the terminal screen line specified by lineno. The line is
-    returned as string, blank space represents empty character. The lineno
-    should be in the range 0..rows - 1
-  */
-  GetLine : function(lineno) {
-    if (lineno < 0 || lineno >= this.rows) {
-      return null;
-    }
-
-    return this.screen[lineno].toString();  // todo
-  },
-
-  /*
-    Returns terminal screen lines as a list, same as GetScreen
-  */
-  GetLines : function() {
-    var lines = [];
-
-    for (var i = 0; i < this.rows; ++i) {
-      lines.push(this.screen[i].toString());  // todo
-    }
-
-    return lines;
-  },
-
-  /*
-    Returns the entire terminal screen as a single big string. Each row
-    is seperated by \\n and blank space represents empty character.
-  */
-  GetLinesAsText : function() {
-    var text = "";
-
-    for (var i = 0; i < this.rows; ++i) {
-      text += this.screen[i].toString();  // todo
-      text += '\n';
-    }
-
-    text = text.replace(/\n+$/g, ''); // removes leading new lines
-
-    return text;
-  },
-
-  /*
-    Returns list of dirty lines(line nos) since last call to GetDirtyLines.
-    The line no will be 0..rows - 1.
-  */
-  GetDirtyLines : function() {
-    var dirtyLines = [];
-
-    for (var i = 0; i < this.rows; ++i) {
-      if (this.isLineDirty[i]) {
-        dirtyLines.push(i);
-        this.isLineDirty[i] = false;
-      }
-    }
-
-    return dirtyLines;
-  },
-
-  /*
     Processes the given input text. It detects V100 escape sequences and
     handles it. Any partial unparsed escape sequences are stored internally
     and processed along with next input text. Before leaving, the function
@@ -866,13 +646,12 @@ cli.prototype = {
         graphicsChar = true;
       }
 
-      var ascii = ch.charCodeAt(0);
-
       if (this.ignoreChars) {
         index += 1;
         continue;
       }
 
+      var ascii = ch.charCodeAt(0);
       if (this.charHandlers[ascii]) {
         index = this.charHandlers[ascii](text, index);
       } else {
@@ -884,11 +663,6 @@ cli.prototype = {
         index += 1;
       }
     }
-
-    // update the dirty lines
-    //if (this.callbacks[this.CALLBACK_UPDATE_LINES]) {
-    //  this.callbacks[this.CALLBACK_UPDATE_LINES]();
-    //}
   },
 
   /*
@@ -897,11 +671,6 @@ cli.prototype = {
     scrolling the screen.
   */
   ScrollUp : function() {
-    // update the dirty lines
-    //if (this.callbacks[this.CALLBACK_UPDATE_LINES]) {
-    //  this.callbacks[this.CALLBACK_UPDATE_LINES]();
-    //}
-
     for (var x = 0; x < this.rows - 1; ++x) {
       this.isLineDirty[x] = this.isLineDirty[x + 1];
     }
@@ -916,6 +685,7 @@ cli.prototype = {
       rendition = this.scrRendition.shift();
       this.scrRendition.push("");
     }
+
     var lineNo = this.scrollingRegion ? this.scrollingRegion[0] - 1 : 0;
     if (!rendition || this.isLineDirty[lineNo]) {
       rendition = this.createScreenRendition(lineNo);
@@ -949,11 +719,6 @@ cli.prototype = {
     scrolling the screen.
   */
   ScrollDown : function() {
-    // update the dirty lines
-    //if (this.callbacks[this.CALLBACK_UPDATE_LINES]) {
-    //  this.callbacks[this.CALLBACK_UPDATE_LINES]();
-    //}
-
     this.cursor.style.backgroundColor = '';
 
     var rendition;
@@ -982,16 +747,6 @@ cli.prototype = {
 
     this.refresh = true;
   },
-
-  /*
-  Dump(self, file=sys.stdout):
-    """
-    Dumps the entire terminal screen into the given file/stdout
-    """
-    for i in range(self.rows):
-        file.write(self.screen[i].tostring())
-        file.write("\n")
-  */
 
   /*
     Moves the cursor to the next line, if the cursor is already at the
@@ -1075,8 +830,6 @@ cli.prototype = {
     next time.
   */
   __HandleEscSeq : function(text, index) {
-
-    //console.log('esc '+text.substring(index,index+7).toSource());
     if (text[index] == '[') {
       index += 1;
       var result = this.__ParseEscSeq(text, index);
@@ -1099,9 +852,6 @@ cli.prototype = {
 
         escSeq += finalChar;
 
-        //if (this.callbacks[this.CALLBACK_UNHANDLED_ESC_SEQ]) {
-        //  this.callbacks[this.CALLBACK_UNHANDLED_ESC_SEQ](escSeq);
-        //}
         if (text[index]) {
           debug('Unhandled [ escape: ' + text[index].toSource());
         }
@@ -1143,28 +893,8 @@ cli.prototype = {
   /*
     Handler for bell character
   */
-  belAudio : null,
-  enableBell : true,
   __OnCharBel : function(text, index) {
-    if (!this.enableBell) {
-      return;
-    }
-
-    var output = new Audio();
-    output.mozSetup(1, 44100);  // channels, rate
-    if (this.belAudio) {
-      output.mozWriteAudio(this.belAudio);
-    } else {
-      var samples = new Float32Array(sys.platform == 'win32' ? 8192 : 512); // data
-      var len = samples.length;
-
-      for (var i = 0; i < samples.length ; i++) {
-        samples[i] = Math.sin( 2 * Math.PI * 4000 * i / 44100 ) * 0.025;   // 4000 = frequency, 44100 = sampling rate, 0.025 = amplitude
-      }
-      output.mozWriteAudio(samples);
-      this.belAudio = samples;
-    }
-
+    //disabled
     return index + 1;
   },
 
@@ -1338,7 +1068,6 @@ cli.prototype = {
   */
   __OnEscSeqCHA : function(params) {
     if (params == null) {
-      //print "WARNING: CHA without parameter"
       return;
     }
 
@@ -1371,20 +1100,8 @@ cli.prototype = {
       }
     }
 
-    if (x < 0) {
-      x = 0;
-    } else if (x >= this.cols) {
-      x = this.cols - 1;
-    }
-
-    if (y < 0) {
-      y = 0;
-    } else if (y >= this.rows) {
-      y = this.rows - 1;
-    }
-
-    this.curX = x;
-    this.curY = y;
+    this.curX = this.___between(0, x, this.cols);
+    this.curY = this.___between(0, y, this.rows);
   },
 
   /*
@@ -1409,10 +1126,7 @@ cli.prototype = {
   */
   __OnEscSeqIL : function(params) {
     var n = this.___unary(params);
-
-    for (var x = 0; x < n; ++x) {
-      this.ScrollDown();
-    }
+    this.times(n, this.ScrollDown);
   },
 
   /*
@@ -1420,10 +1134,7 @@ cli.prototype = {
   */
   __OnEscSeqDL : function(params) {
     var n = this.___unary(params);
-
-    for (var x = 0; x < n; ++x) {
-      this.ScrollUp();
-    }
+    this.times(n, this.ScrollUp);
   },
 
   /*
@@ -1447,10 +1158,7 @@ cli.prototype = {
   */
   __OnEscSeqSU : function(params) {
     var n = this.___unary(params);
-
-    for (var x = 0; x < n; ++x) {
-      this.ScrollUp();
-    }
+    this.times(n, this.ScrollUp);
   },
 
   /*
@@ -1458,10 +1166,7 @@ cli.prototype = {
   */
   __OnEscSeqSD : function(params) {
     var n = this.___unary(params);
-
-    for (var x = 0; x < n; ++x) {
-      this.ScrollDown();
-    }
+    this.times(n, this.ScrollDown);
   },
 
   /*
@@ -1473,9 +1178,9 @@ cli.prototype = {
     if (n == 0) {
       this.ClearRect(this.curY, this.curX, this.curY, this.cols - 1);
     } else if (n == 1) {
-      this.ClearRect(this.curY, 0, this.curY, this.curX);
+      this.ClearRect(this.curY, 0        , this.curY, this.curX);
     } else if (n == 2) {
-      this.ClearRect(this.curY, 0, this.curY, this.cols - 1);
+      this.ClearRect(this.curY, 0        , this.curY, this.cols - 1);
     } else {
       //print "WARNING: escape sequence EL has invalid parameter"
     }
@@ -1530,10 +1235,6 @@ cli.prototype = {
         }
 
         this.refresh = true;
-
-        // XXX hack for now, we ignore scrolling region by telling shell to resize again
-        //gConnection.shell.resize_pty(this.cols, this.rows - 1);
-        //gConnection.shell.resize_pty(this.cols, this.rows);
       }
     } else {
       params = params.split(';');
@@ -1541,8 +1242,6 @@ cli.prototype = {
         this.insertMode = true;
       }
     }
-    //this.onTerminalReset();
-    //this.updateScreen(true);
   },
 
   /*
@@ -1569,12 +1268,10 @@ cli.prototype = {
         this.insertMode = false;
       }
     }
-
-    //this.onTerminalReset();
-    //this.updateScreen(true);
   },
 
-  colors : ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'],
+  // tango color
+  colors : ['#2e3436', '#ef2929', '#8ae234', '#fcaf3e', '#3465a4', '#ad7fa8', '#729fcf', '#eeeeec'],
 
   /*
     Handler for escape sequence SGR
@@ -1701,8 +1398,6 @@ cli.prototype = {
       this.curRendition = this.resetStyle;
       this.negativeColors = false;
     }
-
-    //print "Current attribute", self.curAttrib
   },
 
   /*
@@ -1712,21 +1407,6 @@ cli.prototype = {
     if (params != null) {
       var region = params.split(';');
       this.scrollingRegion = [parseInt(region[0]), parseInt(region[1])];
-    }
-  },
-
-  /*
-    Handler for window manipulation
-  */
-  __OnEscSeqDECWINMAN : function(params) {
-    if (params != null) {
-      params = params.split(';');
-      if (params[0] == '8') {
-        var width  = parseInt(params[2]) * this.letterWidth  + 50;
-        var height = parseInt(params[1]) * this.letterHeight + 7;
-
-        window.resizeTo(width, height);
-      }
     }
   },
 
@@ -1744,69 +1424,18 @@ cli.prototype = {
     this.graphicsCharactersMode = true;
   },
 
-  //{{{ unused
-  onFocus : function() {
-    this.isFocused = true;
-
-    if (this.cursor && this.initialScroll) {
-      this.cursor.style.border = "";
-      this.cursor.style.top = (parseInt(this.cursor.style.top) + 1) + 'px';
-      this.cursor.style.left = (parseInt(this.cursor.style.left) + 1) + 'px';
-      this.cursor.style.backgroundColor = this.defaultColor;
-    }
-
-    this.body.focus();
-  },
-
-  onBlur : function() {
-    this.isFocused = false;
-
-    if (this.cursor && this.initialScroll) {
-      this.cursor.style.border = "1px solid " + this.defaultColor;
-      this.cursor.style.top = (parseInt(this.cursor.style.top) - 1) + 'px';
-      this.cursor.style.left = (parseInt(this.cursor.style.left) - 1) + 'px';
-      this.cursor.style.backgroundColor = "";
-    }
-  },
-
-  lastResizeTime : Date.now(),
-  finalResizeTimeout : null,
-
   onResize : function(initOnly) {
-    var cols = parseInt((this.body.clientWidth - 50) / this.letterWidth);
-    var rows = parseInt((this.body.clientHeight - 7) / this.letterHeight);
-
-    var widthDiff  = (this.body.clientWidth - 50) % this.letterWidth;
-    var heightDiff = (this.body.clientHeight - 7) % this.letterHeight;
-
-    window.resizeBy(-1 * widthDiff, -1 * heightDiff);
+    var cols = parseInt(this.body.clientWidth / this.letterWidth);
+    var rows = parseInt(this.body.clientHeight / this.letterHeight);
 
     if (initOnly) {
       this.rows = rows;
       this.cols = cols;
-
       return;
     }
 
-    this.lastResizeTime = Date.now();
-
-    if (rows == this.rows && cols == this.cols) {
-      return;
+    if (rows != this.rows || cols != this.cols) {
+      this.Resize(rows, cols);
     }
-
-    this.Resize(rows, cols);
-
-    if (gConnection && gConnection.isConnected && gConnection.isReady) {
-      gConnection.shell.resize_pty(cols, rows);
-    }
-  },
-  // }}}
-
-  resetAppearance : function() {
-    //this.body.style.font = this.fontSize + " " + this.font;
-    this.body.style.backgroundColor = this.defaultBGColor;
-    this.body.style.color = this.defaultColor;
-
-    //this.letterHeight = this.doc.getElementById('opening').offsetHeight;
   }
 };
